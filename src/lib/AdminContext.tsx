@@ -49,9 +49,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (profile?.is_admin) setIsAdmin(true);
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("site_content")
         .select("key, value");
+      if (error) {
+        console.warn("site_content table may not exist yet:", error.message);
+      }
       if (data) {
         const map: SiteContent = {};
         data.forEach((row: { key: string; value: string }) => {
@@ -66,9 +69,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const updateContent = useCallback(
     async (key: string, value: string) => {
       setContent((prev) => ({ ...prev, [key]: value }));
-      await supabase
+      const { error } = await supabase
         .from("site_content")
         .upsert({ key, value }, { onConflict: "key" });
+      if (error) {
+        console.error("Failed to save content:", error.message);
+        console.error(
+          "You may need to run supabase-migration-inline-edit.sql in the Supabase SQL Editor."
+        );
+      }
     },
     [supabase]
   );
@@ -86,12 +95,17 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
       const filePath = `site-images/${fileName}`;
 
+      console.log("Uploading to bucket 'images', path:", filePath);
+
       const { error } = await supabase.storage
         .from("images")
         .upload(filePath, file);
 
       if (error) {
-        console.error("Upload error:", error);
+        console.error("Storage upload error:", error.message);
+        console.error(
+          "Make sure you have a public storage bucket named 'images' in Supabase. Go to Storage > New Bucket > name it 'images' > check 'Public bucket'."
+        );
         return null;
       }
 
@@ -99,6 +113,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         data: { publicUrl },
       } = supabase.storage.from("images").getPublicUrl(filePath);
 
+      console.log("Upload successful, public URL:", publicUrl);
       return publicUrl;
     },
     [supabase]
