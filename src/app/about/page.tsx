@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { InlineEdit } from "@/components/InlineEdit";
+import { InlineImage } from "@/components/InlineImage";
 
 export default function AboutPage() {
   return (
@@ -9,15 +9,15 @@ export default function AboutPage() {
       {/* Hero */}
       <section className="px-6 mb-20">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <div className="aspect-[4/5] relative bg-linen">
-            <Image
-              src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80"
-              alt="In the kitchen"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
+          <InlineImage
+            contentKey="about_hero_image"
+            fallbackSrc="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80"
+            alt="In the kitchen"
+            fill
+            className="object-cover"
+            priority
+            containerClassName="aspect-[4/5] relative bg-linen"
+          />
           <div className="lg:pl-8">
             <InlineEdit
               contentKey="about_label"

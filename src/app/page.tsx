@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-client";
 import { RecipeCard } from "@/components/RecipeCard";
 import { InlineEdit } from "@/components/InlineEdit";
+import { InlineImage } from "@/components/InlineImage";
 import Link from "next/link";
-import Image from "next/image";
 import type { Recipe } from "@/types/database";
 
 export default function HomePage() {
@@ -40,23 +40,18 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative h-screen flex items-center">
         <div className="absolute inset-0">
-          {hero?.image_url ? (
-            <Image
-              src={hero.image_url}
-              alt={hero.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          ) : (
-            <Image
-              src="https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=1920&q=80"
-              alt="Elegant table setting"
-              fill
-              className="object-cover"
-              priority
-            />
-          )}
+          <InlineImage
+            contentKey="home_hero_image"
+            fallbackSrc={
+              hero?.image_url ||
+              "https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=1920&q=80"
+            }
+            alt="Hero background"
+            fill
+            className="object-cover"
+            priority
+            containerClassName="absolute inset-0"
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-charcoal/70 via-charcoal/40 to-transparent" />
         </div>
 

@@ -19,6 +19,7 @@ interface AdminContextType {
   content: SiteContent;
   updateContent: (key: string, value: string) => Promise<void>;
   getContent: (key: string, fallback: string) => string;
+  uploadImage: (file: File) => Promise<string | null>;
 }
 
 const AdminContext = createContext<AdminContextType>({
@@ -26,6 +27,7 @@ const AdminContext = createContext<AdminContextType>({
   content: {},
   updateContent: async () => {},
   getContent: (_key, fallback) => fallback,
+  uploadImage: async () => null,
 });
 
 export function AdminProvider({ children }: { children: ReactNode }) {
@@ -35,7 +37,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
-      // Check admin status
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -48,7 +49,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (profile?.is_admin) setIsAdmin(true);
       }
 
-      // Load all site content
       const { data } = await supabase
         .from("site_content")
         .select("key, value");
@@ -80,8 +80,34 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [content]
   );
 
+  const uploadImage = useCallback(
+    async (file: File): Promise<string | null> => {
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
+      const filePath = `site-images/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from("images")
+        .upload(filePath, file);
+
+      if (error) {
+        console.error("Upload error:", error);
+        return null;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("images").getPublicUrl(filePath);
+
+      return publicUrl;
+    },
+    [supabase]
+  );
+
   return (
-    <AdminContext.Provider value={{ isAdmin, content, updateContent, getContent }}>
+    <AdminContext.Provider
+      value={{ isAdmin, content, updateContent, getContent, uploadImage }}
+    >
       {children}
     </AdminContext.Provider>
   );
