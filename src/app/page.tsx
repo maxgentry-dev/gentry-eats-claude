@@ -50,12 +50,12 @@ export default function HomePage() {
             fill
             className="object-cover"
             priority
-            containerClassName="absolute inset-0"
+            containerClassName="absolute inset-0 z-0"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/70 via-charcoal/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-charcoal/70 via-charcoal/40 to-transparent pointer-events-none z-10" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 w-full">
+        <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12 w-full">
           <div className="max-w-2xl">
             <InlineEdit
               contentKey="home_hero_label"
@@ -63,11 +63,12 @@ export default function HomePage() {
               as="p"
               className="text-sm tracking-[0.3em] uppercase text-cream/80 mb-4"
             />
-            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-cream leading-[0.9] mb-6">
-              Gentry
-              <br />
-              <em className="font-normal">Eats</em>
-            </h1>
+            <InlineEdit
+              contentKey="home_hero_title"
+              fallback="Gentry Eats"
+              as="h1"
+              className="font-serif text-5xl md:text-7xl lg:text-8xl text-cream leading-[0.9] mb-6"
+            />
             <InlineEdit
               contentKey="home_hero_tagline"
               fallback="Home-cooked elegance, one recipe at a time. Stories, seasons, and flavors gathered around the table."
