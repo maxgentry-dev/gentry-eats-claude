@@ -16,7 +16,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Image from "next/image";
-import type { Recipe, Profile } from "@/types/database";
+import type { Recipe, Profile, InstagramPost } from "@/types/database";
 
 interface RecipeForm {
   title: string;
@@ -71,6 +71,9 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
+  const [igUploading, setIgUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"recipes" | "instagram">("recipes");
   const supabase = createClient();
 
   const fetchRecipes = useCallback(async () => {
@@ -79,6 +82,14 @@ export default function AdminPage() {
       .select("*")
       .order("created_at", { ascending: false });
     if (data) setRecipes(data as Recipe[]);
+  }, []);
+
+  const fetchIgPosts = useCallback(async () => {
+    const { data } = await supabase
+      .from("instagram_posts")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (data) setIgPosts(data as InstagramPost[]);
   }, []);
 
   useEffect(() => {
@@ -104,10 +115,11 @@ export default function AdminPage() {
 
       setProfile(profileData);
       await fetchRecipes();
+      await fetchIgPosts();
       setLoading(false);
     };
     checkAdmin();
-  }, [fetchRecipes]);
+  }, [fetchRecipes, fetchIgPosts]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -230,6 +242,60 @@ export default function AdminPage() {
       .update({ featured: !recipe.featured })
       .eq("id", recipe.id);
     await fetchRecipes();
+  };
+
+  const handleIgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIgUploading(true);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const url = await uploadImage(file);
+      if (url) {
+        const nextOrder = igPosts.length + i;
+        await supabase.from("instagram_posts").insert({
+          image_url: url,
+          link: "https://instagram.com/gentry_eats",
+          sort_order: nextOrder,
+        });
+      }
+    }
+
+    await fetchIgPosts();
+    setIgUploading(false);
+    e.target.value = "";
+  };
+
+  const handleIgDelete = async (id: string) => {
+    await supabase.from("instagram_posts").delete().eq("id", id);
+    await fetchIgPosts();
+  };
+
+  const handleIgLinkUpdate = async (id: string, link: string) => {
+    await supabase.from("instagram_posts").update({ link }).eq("id", id);
+    await fetchIgPosts();
+  };
+
+  const handleIgReorder = async (id: string, direction: "up" | "down") => {
+    const idx = igPosts.findIndex((p) => p.id === id);
+    if (idx === -1) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= igPosts.length) return;
+
+    const currentOrder = igPosts[idx].sort_order;
+    const swapOrder = igPosts[swapIdx].sort_order;
+
+    await supabase
+      .from("instagram_posts")
+      .update({ sort_order: swapOrder })
+      .eq("id", igPosts[idx].id);
+    await supabase
+      .from("instagram_posts")
+      .update({ sort_order: currentOrder })
+      .eq("id", igPosts[swapIdx].id);
+
+    await fetchIgPosts();
   };
 
   const handleSignOut = async () => {
@@ -558,108 +624,294 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Recipes List */}
-        <div className="space-y-4">
-          {recipes.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-linen">
-              <p className="font-serif text-xl italic text-warm-gray mb-4">
-                No recipes yet
-              </p>
-              <p className="text-charcoal-light mb-6">
-                Click &ldquo;New Recipe&rdquo; to add your first recipe.
-              </p>
-            </div>
-          ) : (
-            recipes.map((recipe) => (
-              <div
-                key={recipe.id}
-                className="flex items-center gap-4 p-4 bg-white border border-linen hover:border-charcoal/20 transition-colors"
-              >
-                {/* Thumbnail */}
-                <div className="w-16 h-16 relative bg-linen flex-shrink-0">
-                  {recipe.image_url ? (
-                    <Image
-                      src={recipe.image_url}
-                      alt={recipe.title}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-warm-gray text-xs">
-                      No img
-                    </div>
-                  )}
-                </div>
+        {/* Tabs */}
+        <div className="flex gap-6 mb-8 border-b border-linen">
+          <button
+            onClick={() => setActiveTab("recipes")}
+            className={`pb-3 text-sm tracking-widest uppercase transition-colors ${
+              activeTab === "recipes"
+                ? "text-charcoal border-b-2 border-charcoal"
+                : "text-warm-gray hover:text-charcoal"
+            }`}
+          >
+            Recipes ({recipes.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("instagram")}
+            className={`pb-3 text-sm tracking-widest uppercase transition-colors ${
+              activeTab === "instagram"
+                ? "text-charcoal border-b-2 border-charcoal"
+                : "text-warm-gray hover:text-charcoal"
+            }`}
+          >
+            Instagram Grid ({igPosts.length})
+          </button>
+        </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-serif text-lg truncate">{recipe.title}</h3>
-                  <p className="text-xs text-warm-gray">
-                    {recipe.category} &middot;{" "}
-                    {new Date(recipe.created_at).toLocaleDateString()}
-                  </p>
-                </div>
+        {/* Recipes Tab */}
+        {activeTab === "recipes" && (
+          <div className="space-y-4">
+            {recipes.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-linen">
+                <p className="font-serif text-xl italic text-warm-gray mb-4">
+                  No recipes yet
+                </p>
+                <p className="text-charcoal-light mb-6">
+                  Click &ldquo;New Recipe&rdquo; to add your first recipe.
+                </p>
+              </div>
+            ) : (
+              recipes.map((recipe) => (
+                <div
+                  key={recipe.id}
+                  className="flex items-center gap-4 p-4 bg-white border border-linen hover:border-charcoal/20 transition-colors"
+                >
+                  {/* Thumbnail */}
+                  <div className="w-16 h-16 relative bg-linen flex-shrink-0">
+                    {recipe.image_url ? (
+                      <Image
+                        src={recipe.image_url}
+                        alt={recipe.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-warm-gray text-xs">
+                        No img
+                      </div>
+                    )}
+                  </div>
 
-                {/* Status Badges */}
-                <div className="hidden sm:flex items-center gap-2">
-                  {recipe.published ? (
-                    <span className="px-2 py-1 text-xs bg-sage/20 text-sage">
-                      Published
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 text-xs bg-linen text-warm-gray">
-                      Draft
-                    </span>
-                  )}
-                  {recipe.featured && (
-                    <span className="px-2 py-1 text-xs bg-accent/20 text-accent">
-                      Featured
-                    </span>
-                  )}
-                </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-serif text-lg truncate">{recipe.title}</h3>
+                    <p className="text-xs text-warm-gray">
+                      {recipe.category} &middot;{" "}
+                      {new Date(recipe.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => togglePublished(recipe)}
-                    className="p-2 text-warm-gray hover:text-charcoal transition-colors"
-                    title={recipe.published ? "Unpublish" : "Publish"}
-                  >
+                  {/* Status Badges */}
+                  <div className="hidden sm:flex items-center gap-2">
                     {recipe.published ? (
-                      <Eye size={18} />
+                      <span className="px-2 py-1 text-xs bg-sage/20 text-sage">
+                        Published
+                      </span>
                     ) : (
-                      <EyeOff size={18} />
+                      <span className="px-2 py-1 text-xs bg-linen text-warm-gray">
+                        Draft
+                      </span>
                     )}
-                  </button>
-                  <button
-                    onClick={() => toggleFeatured(recipe)}
-                    className="p-2 text-warm-gray hover:text-accent transition-colors"
-                    title={recipe.featured ? "Unfeature" : "Feature"}
-                  >
-                    {recipe.featured ? (
-                      <Star size={18} className="fill-accent text-accent" />
-                    ) : (
-                      <StarOff size={18} />
+                    {recipe.featured && (
+                      <span className="px-2 py-1 text-xs bg-accent/20 text-accent">
+                        Featured
+                      </span>
                     )}
-                  </button>
-                  <button
-                    onClick={() => handleEdit(recipe)}
-                    className="px-3 py-1 text-sm border border-linen hover:border-charcoal transition-colors"
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => togglePublished(recipe)}
+                      className="p-2 text-warm-gray hover:text-charcoal transition-colors"
+                      title={recipe.published ? "Unpublish" : "Publish"}
+                    >
+                      {recipe.published ? (
+                        <Eye size={18} />
+                      ) : (
+                        <EyeOff size={18} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => toggleFeatured(recipe)}
+                      className="p-2 text-warm-gray hover:text-accent transition-colors"
+                      title={recipe.featured ? "Unfeature" : "Feature"}
+                    >
+                      {recipe.featured ? (
+                        <Star size={18} className="fill-accent text-accent" />
+                      ) : (
+                        <StarOff size={18} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleEdit(recipe)}
+                      className="px-3 py-1 text-sm border border-linen hover:border-charcoal transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(recipe.id)}
+                      className="p-2 text-warm-gray hover:text-red-500 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Instagram Tab */}
+        {activeTab === "instagram" && (
+          <div>
+            {/* Info + Upload */}
+            <div className="mb-8 p-6 bg-white border border-linen">
+              <h3 className="font-serif text-xl mb-2">Instagram Footer Grid</h3>
+              <p className="text-sm text-charcoal-light mb-4">
+                Upload photos from your recent Instagram posts. These appear in the
+                footer of every page. For the best look, use <strong>6 square photos</strong>.
+                You can optionally add a link to each post so visitors go straight to
+                your Instagram.
+              </p>
+              <label className="btn-primary inline-flex items-center gap-2 cursor-pointer">
+                <ImagePlus size={18} />
+                {igUploading ? "Uploading..." : "Upload Photos"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleIgUpload}
+                  disabled={igUploading}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Grid Preview */}
+            {igPosts.length > 0 ? (
+              <div className="space-y-3">
+                {igPosts.map((post, idx) => (
+                  <div
+                    key={post.id}
+                    className="flex items-center gap-4 p-4 bg-white border border-linen"
                   >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(recipe.id)}
-                    className="p-2 text-warm-gray hover:text-red-500 transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                    {/* Thumbnail */}
+                    <div className="w-20 h-20 relative bg-linen flex-shrink-0">
+                      <Image
+                        src={post.image_url}
+                        alt={post.caption || `Instagram photo ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Order number */}
+                    <div className="text-center flex-shrink-0 w-8">
+                      <span className="font-serif text-lg text-warm-gray">
+                        {idx + 1}
+                      </span>
+                    </div>
+
+                    {/* Link input */}
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-xs text-warm-gray mb-1">
+                        Instagram post link
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={post.link || ""}
+                        placeholder="https://instagram.com/p/..."
+                        onBlur={(e) =>
+                          handleIgLinkUpdate(post.id, e.target.value)
+                        }
+                        className="w-full px-3 py-2 bg-cream border border-linen focus:border-charcoal outline-none transition-colors text-sm"
+                      />
+                    </div>
+
+                    {/* Reorder + Delete */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => handleIgReorder(post.id, "up")}
+                        disabled={idx === 0}
+                        className="p-2 text-warm-gray hover:text-charcoal transition-colors disabled:opacity-30"
+                        title="Move up"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M18 15l-6-6-6 6" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleIgReorder(post.id, "down")}
+                        disabled={idx === igPosts.length - 1}
+                        className="p-2 text-warm-gray hover:text-charcoal transition-colors disabled:opacity-30"
+                        title="Move down"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleIgDelete(post.id)}
+                        className="p-2 text-warm-gray hover:text-red-500 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Live preview */}
+                <div className="mt-8">
+                  <p className="text-sm tracking-widest uppercase text-warm-gray mb-4">
+                    Footer Preview
+                  </p>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-1 bg-charcoal p-4 rounded">
+                    {igPosts.slice(0, 6).map((post, idx) => (
+                      <div
+                        key={post.id}
+                        className="aspect-square relative overflow-hidden"
+                      >
+                        <Image
+                          src={post.image_url}
+                          alt={post.caption || `Preview ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {igPosts.length > 6 && (
+                    <p className="text-xs text-warm-gray mt-2">
+                      Only the first 6 photos are shown in the footer.
+                    </p>
+                  )}
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              <div className="text-center py-16 border border-dashed border-linen">
+                <ImagePlus size={40} className="text-linen mx-auto mb-4" />
+                <p className="font-serif text-xl italic text-warm-gray mb-2">
+                  No Instagram photos yet
+                </p>
+                <p className="text-sm text-charcoal-light">
+                  Upload photos above to fill the footer grid. Placeholder
+                  images will show until you add your own.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
