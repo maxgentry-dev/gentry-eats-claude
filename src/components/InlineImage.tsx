@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { Pencil } from "lucide-react";
+import { useRef, useState } from "react";
+import { Pencil, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useAdmin } from "@/lib/AdminContext";
 
@@ -28,6 +28,7 @@ export function InlineImage({
 }: InlineImageProps) {
   const { isAdmin, getContent, updateContent, uploadImage } = useAdmin();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const currentSrc = getContent(contentKey, fallbackSrc);
 
@@ -35,44 +36,53 @@ export function InlineImage({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploading(true);
     const url = await uploadImage(file);
     if (url) {
       await updateContent(contentKey, url);
     }
+    setUploading(false);
     e.target.value = "";
   };
 
   return (
-    <div className={`${containerClassName} ${isAdmin ? "relative group/img" : "relative"}`}>
-      {fill ? (
-        <Image
-          src={currentSrc}
-          alt={alt}
-          fill
-          className={className}
-          priority={priority}
-          sizes={sizes}
-        />
-      ) : (
-        <Image
-          src={currentSrc}
-          alt={alt}
-          width={800}
-          height={1000}
-          className={className}
-          priority={priority}
-          sizes={sizes}
-        />
-      )}
+    <>
+      <div className={`${containerClassName} relative`}>
+        {fill ? (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            fill
+            className={className}
+            priority={priority}
+            sizes={sizes}
+          />
+        ) : (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            width={800}
+            height={1000}
+            className={className}
+            priority={priority}
+            sizes={sizes}
+          />
+        )}
+      </div>
 
       {isAdmin && (
-        <>
+        <div className="absolute top-24 right-6 z-50">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="absolute top-3 right-3 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-2 px-3 py-2 bg-accent text-white text-xs font-sans tracking-wide rounded-sm shadow-lg hover:bg-accent-light z-20"
+            disabled={uploading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white text-sm font-sans tracking-wide rounded-sm shadow-lg hover:bg-accent-light transition-colors disabled:opacity-70"
           >
-            <Pencil size={14} />
-            Change Photo
+            {uploading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Pencil size={16} />
+            )}
+            {uploading ? "Uploading..." : "Change Photo"}
           </button>
           <input
             ref={fileInputRef}
@@ -81,8 +91,8 @@ export function InlineImage({
             onChange={handleFileChange}
             className="hidden"
           />
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }
