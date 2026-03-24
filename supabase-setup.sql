@@ -116,7 +116,32 @@ create policy "Admins can manage instagram posts"
     exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
   );
 
--- 5. AUTO-CREATE PROFILE ON SIGNUP
+-- 5. SITE CONTENT TABLE (editable text across the site)
+create table if not exists public.site_content (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz default now()
+);
+
+alter table public.site_content enable row level security;
+
+create policy "Site content is viewable by everyone"
+  on public.site_content for select
+  using (true);
+
+create policy "Admins can insert site content"
+  on public.site_content for insert
+  with check (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Admins can update site content"
+  on public.site_content for update
+  using (
+    exists (select 1 from public.profiles where id = auth.uid() and is_admin = true)
+  );
+
+-- 6. AUTO-CREATE PROFILE ON SIGNUP
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin

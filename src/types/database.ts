@@ -36,6 +36,12 @@ export interface SavedRecipe {
   recipe?: Recipe;
 }
 
+export interface SiteContent {
+  key: string;
+  value: string;
+  updated_at: string;
+}
+
 export interface InstagramPost {
   id: string;
   image_url: string;

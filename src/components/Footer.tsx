@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { InstagramGrid } from "./InstagramGrid";
+import { InlineEdit } from "./InlineEdit";
 
 function InstagramIcon({ size = 28 }: { size?: number }) {
   return (
@@ -28,9 +29,12 @@ export function Footer() {
       {/* Instagram Grid Section */}
       <div className="py-16 px-6">
         <div className="max-w-7xl mx-auto text-center mb-10">
-          <p className="text-sm tracking-widest uppercase text-warm-gray mb-2">
-            Follow Along
-          </p>
+          <InlineEdit
+            contentKey="footer_ig_label"
+            fallback="Follow Along"
+            as="p"
+            className="text-sm tracking-widest uppercase text-warm-gray mb-2"
+          />
           <a
             href="https://instagram.com/gentry_eats"
             target="_blank"
@@ -51,16 +55,22 @@ export function Footer() {
             Gentry Eats
           </Link>
           <div className="flex items-center gap-8 text-sm text-warm-gray">
-            <Link href="/recipes" className="hover:text-cream transition-colors">
+            <Link
+              href="/recipes"
+              className="hover:text-cream transition-colors"
+            >
               Recipes
             </Link>
             <Link href="/about" className="hover:text-cream transition-colors">
               About
             </Link>
           </div>
-          <p className="text-xs text-warm-gray">
-            &copy; {new Date().getFullYear()} Gentry Eats. All rights reserved.
-          </p>
+          <InlineEdit
+            contentKey="footer_copyright"
+            fallback={`© ${new Date().getFullYear()} Gentry Eats. All rights reserved.`}
+            as="p"
+            className="text-xs text-warm-gray"
+          />
         </div>
       </div>
     </footer>

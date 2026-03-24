@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-client";
 import { RecipeCard } from "@/components/RecipeCard";
+import { InlineEdit } from "@/components/InlineEdit";
 import { CATEGORIES } from "@/lib/categories";
 import type { Recipe } from "@/types/database";
 
@@ -37,13 +38,24 @@ export default function RecipesPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <p className="text-sm tracking-widest uppercase text-warm-gray mb-3">
-            Browse
-          </p>
-          <h1 className="font-serif text-4xl md:text-6xl mb-4">All Recipes</h1>
-          <p className="text-charcoal-light max-w-lg mx-auto">
-            From comforting classics to new favorites, find your next meal here.
-          </p>
+          <InlineEdit
+            contentKey="recipes_label"
+            fallback="Browse"
+            as="p"
+            className="text-sm tracking-widest uppercase text-warm-gray mb-3"
+          />
+          <InlineEdit
+            contentKey="recipes_heading"
+            fallback="All Recipes"
+            as="h1"
+            className="font-serif text-4xl md:text-6xl mb-4"
+          />
+          <InlineEdit
+            contentKey="recipes_subheading"
+            fallback="From comforting classics to new favorites, find your next meal here."
+            as="p"
+            className="text-charcoal-light max-w-lg mx-auto"
+          />
         </div>
 
         {/* Category Filter */}
