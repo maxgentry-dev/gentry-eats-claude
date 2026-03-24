@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FAF7F2;
+  --color-cream-dark: #F0EBE3;
+  --color-linen: #E8E0D4;
+  --color-charcoal: #2C2C2C;
+  --color-charcoal-light: #4A4A4A;
+  --color-warm-gray: #8B8178;
+  --color-accent: #B8860B;
+  --color-accent-light: #D4A843;
+  --color-sage: #8B9A7B;
+  --color-blush: #D4A5A5;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-charcoal);
+    background-color: var(--color-cream);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    background-color: var(--color-charcoal);
+    color: var(--color-cream);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background-color 0.3s;
+  }
+  .btn-primary:hover {
+    background-color: var(--color-charcoal-light);
+  }
+
+  .btn-outline {
+    border: 1px solid var(--color-charcoal);
+    color: var(--color-charcoal);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.3s;
+  }
+  .btn-outline:hover {
+    background-color: var(--color-charcoal);
+    color: var(--color-cream);
+  }
+
+  .section-heading {
+    font-family: var(--font-serif);
+    font-size: clamp(1.875rem, 4vw, 2.25rem);
+    color: var(--color-charcoal);
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-linen);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-warm-gray);
+}
